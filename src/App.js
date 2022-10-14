@@ -13,7 +13,7 @@ class App extends React.Component {
         const canvas = document.getElementById("4x3-canvas")
         const ctx = canvas.getContext('2d')
         const img = new Image()
-        img.src = require("./assets/4x3-with-metadata.jpg")
+        img.src = require("./assets/4x3-no-metadata.jpg")
         img.onload = () => {
             canvas.width = img.naturalWidth
             canvas.height = img.naturalHeight
