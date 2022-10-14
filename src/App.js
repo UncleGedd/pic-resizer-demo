@@ -5,50 +5,59 @@ import piexif from 'piexifjs'
 
 class App extends React.Component {
 
-    componentDidMount() {
-        this.loadImage()
-    }
+    imageMetadata;
+    isResized = false
 
-    loadImage = () => {
-        const canvas = document.getElementById("4x3-canvas")
-        const ctx = canvas.getContext('2d')
-        const img = new Image()
-        img.src = require("./assets/4x3-no-metadata.jpg")
-        img.onload = () => {
-            canvas.width = img.naturalWidth
-            canvas.height = img.naturalHeight
-            ctx.drawImage(img, 0, 0)
-            this.processImage(canvas)
+    handleOnLoad = async (e) => {
+        const img = e.target
+        // need this to read exif data because converting to canvas removes it
+        const reader = new FileReader()
+        reader.onloadend = async () => {
+            const exifObj = piexif.load(reader.result) // get exif data from img
+            this.imageMetadata = piexif.dump(exifObj) // dump as str
+            await this.processImage(img)
         }
+        const res = await fetch(img.src)
+        const blob = await res.blob()
+        reader.readAsDataURL(blob)
     }
 
-    processImage = (originalCanvas) => {
-        // get metadata
-        const exifObj = piexif.load(originalCanvas.toDataURL("image/jpeg"))
-        const exifStr = piexif.dump(exifObj)
-
-        const aspectRatioMultiplier = originalCanvas.width / 16
-        const upscaledWidth = aspectRatioMultiplier * 16
-        const upscaledHeight = aspectRatioMultiplier * 9
-        const upscaledImage = document.getElementById("16x9-canvas")
-        upscaledImage.width = upscaledWidth
-        upscaledImage.height = upscaledHeight
+    processImage = async (originalImg) => {
+        const aspectRatioMultiplier = originalImg.naturalWidth / 16
+        const resizedWidth = aspectRatioMultiplier * 16
+        const resizedHeight = aspectRatioMultiplier * 9
+        const resizedImg = document.getElementById("16x9-canvas")
+        resizedImg.width = resizedWidth
+        resizedImg.height = resizedHeight
         const pica = new Pica()
-        pica.resize(originalCanvas, upscaledImage, {
+        await pica.resize(originalImg, resizedImg, {
             unsharpAmount: 160,
             unsharpRadius: 0.6,
             unsharpThreshold: 1
         })
+        this.isResized = true
+    }
+
+    downloadResizedImage = () => {
+        if (!this.isResized || !this.imageMetadata) return
+        const resizedImage = document.getElementById("16x9-canvas")
+        const rawImageData = resizedImage.toDataURL("image/jpeg")
+        const enrichedImageData = piexif.insert(this.imageMetadata, rawImageData)
+        const downloadLink = document.getElementById("download-link")
+        downloadLink.setAttribute('download', "resized.jpg")
+        downloadLink.setAttribute('href', enrichedImageData);
+        downloadLink.click()
     }
 
     render() {
         return (
             <div className="app app-header">
                 <h3>Original 4x3 Image</h3>
-                <canvas id="4x3-canvas"/>
-                {/*<img id={"4x3-canvas"} className={"img-4x3"} src={require("./assets/4x3-with-metadata.jpg")}/>*/}
+                <img src={require("./assets/4x3-with-metadata.jpg")}
+                     onLoad={this.handleOnLoad}/>
                 <h3>Upscaled 16x9 Image</h3>
-                <canvas id="16x9-canvas"/>
+                <canvas id="16x9-canvas" onClick={this.downloadResizedImage}/>
+                <a id="download-link"/>
             </div>
         );
     }
