@@ -1,6 +1,7 @@
 # pic-resize-demo
 Proof of concept for using Javascript in the browser to:
 - Change an image's aspect ratio from 4x3 to 16x9 using the [magic kernel](http://www.johncostella.com/magic/) algorithm
+  - The magic kernel algorithm performs image rescaling without cropping, minimal distortion and added sharpness
 - Transfer image metadata (EXIF) to the resized image
 - Download resized image
 
